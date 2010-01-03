@@ -6,8 +6,6 @@
 		   SerialPortEventListener SerialPortEvent)))
 
 (def DIGITAL-MESSAGE  0x90) ;;send data for a digital port
-(def DIGITAL-MESSAGE-PORT-0  0x90) ;;send data for a digital port
-(def DIGITAL-MESSAGE-PORT-1  0x91) ;;send data for a digital port
 (def ANALOG-MESSAGE   0xE0) ;;send data for an analog pin (or PWM)
 (def REPORT-ANALOG    0xC0) ;;enable analog input by pin #
 (def REPORT-DIGITAL   0xD0) ;;enable digital input by port
@@ -27,7 +25,9 @@
 ;; Serial Setup
 ;;
 
-(defn- port-identifier [port-name]
+(defn- port-identifier 
+  "Given a port name return its identifier."
+  [port-name]
   (let [ports (CommPortIdentifier/getPortIdentifiers)]
     (loop [port (.nextElement ports)
 	   name (.getName port)]
@@ -48,7 +48,9 @@
   [conn]
   (.close (:port @conn)))
 
-(defn- listener [f]
+(defn- listener 
+  "f will be called whenever there is data availible on the stream."
+  [f]
   (proxy [SerialPortEventListener] [] 
     (serialEvent 
      [event]
@@ -59,7 +61,9 @@
 ;; Firmata Related Calls
 ;;
 
-(defn enable-pin [conn type pin]
+(defn enable-pin 
+  "Tell firmware to start sending pin readings."
+  [conn type pin]
   (let [out (.getOutputStream (:port @conn))] 
     (if (= type :analog)
       (do
@@ -71,7 +75,9 @@
 	(.write out 1)))
     (.flush out)))
 
-(defn disable-pin [conn type pin]
+(defn disable-pin 
+  "Tell firmware to stop sending pin readings."
+  [conn type pin]
   (let [out (.getOutputStream (:port @conn))] 
     (if (= type :analog)
       (do
@@ -83,37 +89,47 @@
 	(.write out 0)))
     (.flush out)))
 
-(defn pin-mode [conn pin mode]
+(defn pin-mode 
+  "Configures the specified pin to behave either as an input or an output."
+  [conn pin mode]
   (doto (.getOutputStream (:port @conn))
     (.write (byte-array (vector (byte SET-PIN-MODE) (byte pin) (byte mode))))
     (.flush)))
 
-(defn- set-bit [bit-vec index value]
+(defn- set-bit 
+  "Given a vector of bits set the bit at the index to value"
+  [bit-vec index value]
   (let [head (subvec bit-vec 0 index)
 	tail (subvec bit-vec (inc index))]
     (apply conj head value tail)))
 
-(defn- to-byte [cmd bit-vec]
+(defn- to-byte 
+  "Produce digital write command, by combining cmd and bit vector."
+  [cmd bit-vec]
   (let [bytes  (split-at 8 (reverse bit-vec))
 	first  (BigInteger. (apply str (first bytes)) 2)
 	second (BigInteger. (apply str (second bytes)) 2)]
     (vector (byte cmd) (byte first) (byte second))))
 
-(defn digital-write [conn pin value]
-  (let [out (.getOutputStream (:port @conn))
-	cmd (if (and (> pin 1) (< pin 8)) 
-	      DIGITAL-MESSAGE-PORT-0 
-	      DIGITAL-MESSAGE-PORT-1)
+(defn digital-write 
+  "Write a HIGH or a LOW value to a digital pin."
+  [conn pin value]
+  (let [out   (.getOutputStream (:port @conn))
+	cmd   (bit-or (bit-and (bit-shift-right pin 3) 0x0F) DIGITAL-MESSAGE)
 	state (set-bit (:digital-out-state @conn) pin value)]
     (dosync (alter conn merge {:digital-out-state state}))
     (doto out
       (.write (byte-array (to-byte cmd state)))
       (.flush))))
 
-(defn analog-read [conn pin]
+(defn analog-read 
+  "Reads the value from the specified analog pin."
+  [conn pin]
   ((:analog-in-state @conn) pin))
 
-(defn- process-input [conn]
+(defn- process-input 
+  "Parse input from firmata."
+  [conn]
   (let [in (.getInputStream (:port @conn))
 	data  (.read in)]
     (cond 
@@ -141,7 +157,9 @@
      (dosync
       (alter conn merge {:version {:major (.read in) :minor (.read in)}})))))
 
-(defn arduino [p]
+(defn arduino 
+  "Open serial connection, installer the listener and return a ref."
+  [p]
   (let [port (open (port-identifier p))
 	conn (ref {:port port
 		   :digital-out-state [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
