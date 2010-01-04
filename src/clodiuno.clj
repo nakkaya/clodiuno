@@ -3,7 +3,8 @@
      :doc "Firmata Library for Clojure."}
   (:import (java.io InputStream)
 	   (gnu.io SerialPort CommPortIdentifier 
-		   SerialPortEventListener SerialPortEvent)))
+		   SerialPortEventListener SerialPortEvent 
+		   NoSuchPortException)))
 
 (def DIGITAL-MESSAGE  0x90) ;;send data for a digital port
 (def ANALOG-MESSAGE   0xE0) ;;send data for an analog pin (or PWM)
@@ -28,11 +29,13 @@
 (defn- port-identifier 
   "Given a port name return its identifier."
   [port-name]
-  (let [ports (CommPortIdentifier/getPortIdentifiers)]
-    (loop [port (.nextElement ports)
-	   name (.getName port)]
-      (if (= name port-name)
-	port (recur (.nextElement ports) (.getName port))))))
+  (try
+   (let [ports (CommPortIdentifier/getPortIdentifiers)]
+     (loop [port (.nextElement ports)
+	    name (.getName port)]
+       (if (= name port-name)
+	 port (recur (.nextElement ports) (.getName port)))))
+   (catch Exception e (throw (NoSuchPortException.)))))
 
 (defn- open 
   "Open serial interface."
