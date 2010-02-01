@@ -25,6 +25,10 @@
 (def LOW 0) ;;low value (0 volts) to a pin in a call to digital-write
 (def baudrate 57600)
 
+(defn- on-thread [f]
+  (doto (Thread. #^Runnable f) 
+    (.start)))
+
 ;;
 ;; Serial Setup
 ;;
@@ -52,6 +56,7 @@
 (defn close
   "Close serial interface."
   [conn]
+  (dosync (alter conn merge {:thread false}))
   (.close (:port @conn)))
 
 (defn- listener 
@@ -144,33 +149,35 @@
 
 (defn- process-input 
   "Parse input from firmata."
-  [conn]
-  (let [in (.getInputStream (:port @conn))
-	data  (.read in)]
-    (cond 
-     ;;Multibyte
-     (< data 0xF0)
-     (let [msg (bit-and data 0xF0)] 
-       (cond 
-	;;Analog Message
-	(= msg ANALOG-MESSAGE)
-	(let [pin (bit-and data 0x0F)
-	      lsb (.read in)
-	      msb (.read in)
-	      val (bit-or (bit-shift-left msb 7) lsb)
-	      state (set-bit (:analog-in-state @conn) pin val)]
-	  (dosync (alter conn merge {:analog-in-state state})))
-	;;Digital Message
-	(= msg DIGITAL-MESSAGE)
-	(let [pin (bit-and data 0x0F)
-	      lsb (.read in)
-	      msb (.read in)
-	      val (bit-or (bit-shift-left msb 7) lsb)
-	      state (set-bit (:digital-in-state @conn) pin val)]
-	  (dosync (alter conn merge {:digital-in-state state})))))
-     (= data REPORT-VERSION)
-     (dosync
-      (alter conn merge {:version {:major (.read in) :minor (.read in)}})))))
+  [conn in]
+  (while
+   (:thread @conn)
+   (let [data  (.read in)]
+     (cond 
+      ;;Multibyte
+      (< data 0xF0)
+      (let [msg (bit-and data 0xF0)] 
+	(cond 
+	 ;;Analog Message
+	 (= msg ANALOG-MESSAGE)
+	 (let [pin (bit-and data 0x0F)
+	       lsb (.read in)
+	       msb (.read in)
+	       val (bit-or (bit-shift-left msb 7) lsb)
+	       state (set-bit (:analog-in-state @conn) pin val)]
+	   (dosync (alter conn merge {:analog-in-state state})))
+	 ;;Digital Message
+	 (= msg DIGITAL-MESSAGE)
+	 (let [pin (bit-and data 0x0F)
+	       lsb (.read in)
+	       msb (.read in)
+	       val (bit-or (bit-shift-left msb 7) lsb)
+	       state (set-bit (:digital-in-state @conn) pin val)]
+	   (dosync (alter conn merge {:digital-in-state state})))))
+      (= data REPORT-VERSION)
+      (dosync
+       (alter conn merge 
+	      {:version {:major (.read in) :minor (.read in)}}))))))
 
 (defn arduino 
   "Open serial connection, installer the listener and return a ref."
@@ -179,7 +186,7 @@
 	conn (ref {:port port
 		   :digital-out-state [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
 		   :digital-in-state  [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
-		   :analog-in-state   [0 0 0 0 0 0]})]
-    (.addEventListener port (listener #(process-input conn)))
-    (.notifyOnDataAvailable port true)
+		   :analog-in-state   [0 0 0 0 0 0]
+		   :thread true})]
+    (on-thread #(process-input conn (.getInputStream (:port @conn))))
     conn))
