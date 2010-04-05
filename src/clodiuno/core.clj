@@ -1,4 +1,4 @@
-(ns clodiuno
+(ns clodiuno.core
   #^{:author "Nurullah Akkaya",
      :doc "Firmata Library for Clojure."}
   (:import (java.io InputStream)
