@@ -1,5 +1,5 @@
 (ns photoresistor
-  (:use :reload-all clodiuno))
+  (:use :reload-all clodiuno.core))
 
 ;; refer
 ;; http://nakkaya.com/2009/10/29/connecting-a-photoresistor-to-an-arduino/
@@ -8,7 +8,7 @@
 (def photo-pin 0)
 (def led-pin 13)
 (def threshold 250)
-(def board (arduino "/dev/tty.usbserial-A6008nhh"))
+(def board (arduino "/dev/tty.usbserial-A600aeCj"))
 
 ;;allow arduino to boot
 (Thread/sleep 5000)

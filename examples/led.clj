@@ -1,7 +1,7 @@
 (ns led
-  (:use :reload-all clodiuno))
+  (:use :reload-all clodiuno.core))
 
-(def board (arduino "/dev/tty.usbserial-A6008nhh"))
+(def board (arduino "/dev/tty.usbserial-A600aeCj"))
 
 ;;allow arduino to boot
 (Thread/sleep 5000)
