@@ -152,32 +152,33 @@
   [conn in]
   (while
    (:thread @conn)
-   (let [data  (.read in)]
-     (cond 
-      ;;Multibyte
-      (< data 0xF0)
-      (let [msg (bit-and data 0xF0)] 
-	(cond 
-	 ;;Analog Message
-	 (= msg ANALOG-MESSAGE)
-	 (let [pin (bit-and data 0x0F)
-	       lsb (.read in)
-	       msb (.read in)
-	       val (bit-or (bit-shift-left msb 7) lsb)
-	       state (set-bit (:analog-in-state @conn) pin val)]
-	   (dosync (alter conn merge {:analog-in-state state})))
-	 ;;Digital Message
-	 (= msg DIGITAL-MESSAGE)
-	 (let [pin (bit-and data 0x0F)
-	       lsb (.read in)
-	       msb (.read in)
-	       val (bit-or (bit-shift-left msb 7) lsb)
-	       state (set-bit (:digital-in-state @conn) pin val)]
-	   (dosync (alter conn merge {:digital-in-state state})))))
-      (= data REPORT-VERSION)
-      (dosync
-       (alter conn merge 
-	      {:version {:major (.read in) :minor (.read in)}}))))))
+   (if-not (= 0 (.available in))
+     (let [data  (.read in)]
+       (cond 
+	;;Multibyte
+	(< data 0xF0)
+	(let [msg (bit-and data 0xF0)] 
+	  (cond 
+	   ;;Analog Message
+	   (= msg ANALOG-MESSAGE)
+	   (let [pin (bit-and data 0x0F)
+		 lsb (.read in)
+		 msb (.read in)
+		 val (bit-or (bit-shift-left msb 7) lsb)
+		 state (set-bit (:analog-in-state @conn) pin val)]
+	     (dosync (alter conn merge {:analog-in-state state})))
+	   ;;Digital Message
+	   (= msg DIGITAL-MESSAGE)
+	   (let [pin (bit-and data 0x0F)
+		 lsb (.read in)
+		 msb (.read in)
+		 val (bit-or (bit-shift-left msb 7) lsb)
+		 state (set-bit (:digital-in-state @conn) pin val)]
+	     (dosync (alter conn merge {:digital-in-state state})))))
+	(= data REPORT-VERSION)
+	(dosync
+	 (alter conn merge 
+		{:version {:major (.read in) :minor (.read in)}})))))))
 
 (defn arduino 
   "Open serial connection, installer the listener and return a ref."
