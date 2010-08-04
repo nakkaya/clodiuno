@@ -2,10 +2,12 @@
   #^{:author "Nurullah Akkaya",
      :doc "WiShield Library for Clojure."}
   (:use clodiuno.core :reload-all)
-  (:import (java.net Socket)
+  (:import (java.text DecimalFormat)
+	   (java.net Socket)
 	   (java.io PrintWriter InputStreamReader BufferedReader)))
 
-(derive ::wishield ::interface)
+(def pin-format (DecimalFormat. "00"))
+(def pwm-format (DecimalFormat. "000"))
 
 (def INPUT 0) ;;pin to input mode
 (def OUTPUT 1) ;;pin to output mode
@@ -26,21 +28,33 @@
 (defmethod disable-pin :wishield [board type pin])
 
 (defmethod pin-mode :wishield [board pin mode]
-  (let [pin (if (< pin 10) (str "0" pin) (str pin))
+  (let [pin (.format pin-format pin)
 	mode (cond (= mode INPUT) "i"
 		   (= mode OUTPUT) "o"
 		   (= mode ANALOG) "a"
 		   (= mode PWM) "p"
-		   (= mode SERVO) "s"
+		   ;;(= mode SERVO) "s"
 		   :default (throw (Exception. "Invalid Mode.")))]
     (send-command board (str "pm" pin mode))))
 
 (defmethod digital-write :wishield [board pin value]
-  (let [pin (if (< pin 10) (str "0" pin) (str pin))
+  (let [pin (.format pin-format pin)
 	value (cond (= value HIGH) "h"
 		   (= value LOW) "l"
 		   :default (throw (Exception. "Invalid Value.")))]
     (send-command board (str "dw" pin value))))
+
+(defmethod analog-write :wishield [board pin value]
+  (send-command 
+   board (str "aw" (.format pin-format pin) (.format pwm-format value))))
+
+(defmethod analog-read :wishield [board pin]
+  (read-string
+   (send-command board (str "ar" (.format pin-format pin)))))
+
+(defmethod digital-read :wishield [board pin]
+  (read-string
+   (send-command board (str "dr" (.format pin-format pin)))))
 
 (defmethod close :wishield [board]
   (let [{:keys [in out socket]} board]
@@ -60,9 +74,22 @@
 (comment 
   (def board (arduino "10.0.2.100" 1000))
 
-  (pin-mode board 6 OUTPUT)
-  (digital-write board 6 HIGH)
-  (digital-write board 6 LOW)
+  (do 
+    (pin-mode board 3 OUTPUT)
+    (pin-mode board 6 INPUT)
+    (while true 
+	   (let [i (digital-read board 6)] 
+	     (println i)
+	     (digital-write board 3 i))))
+
+  (let [map (fn [x in-min in-max out-min out-max]
+		(+ (/ (* (- x in-min) (- out-max out-min)) 
+		      (- in-max in-min)) out-min))]
+      (pin-mode board 3 PWM)
+      (pin-mode board 5 ANALOG)
+      
+      (while true (analog-write board 3 
+				(map (analog-read board 5) 0 1023 0 255))))
 
   (close board)
   )

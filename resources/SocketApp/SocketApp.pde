@@ -49,12 +49,10 @@ unsigned char ssid_len;
 unsigned char security_passphrase_len;
 //---------------------------------------------------------------------------
 
-void setup()
-{
-	WiFi.init();
+void setup(){
+  WiFi.init();
 }
 
-void loop()
-{
-	WiFi.run();
+void loop(){
+  WiFi.run();
 }

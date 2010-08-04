@@ -16,17 +16,17 @@
   "Write a HIGH or a LOW value to a digital pin."
   (fn [type _ _] (type :interface)))
 
-;; (defmulti digital-read
-;;   "Read a HIGH or a LOW value from a digital pin."
-;;   (fn [type] ((meta type) :interface)))
+(defmulti digital-read
+  "Read a HIGH or a LOW value from a digital pin."
+  (fn [type _] (type :interface)))
 
-;; (defmulti analog-read 
-;;   "Reads the value from the specified analog pin."
-;;   (fn [type] ((meta type) :interface)))
+(defmulti analog-read 
+  "Reads the value from the specified analog pin."
+  (fn [type _] (type :interface)))
 
-;; (defmulti analog-write 
-;;   "Write an analog value (PWM-wave) to a digital pin."
-;;   (fn [type] ((meta type) :interface)))
+(defmulti analog-write 
+  "Write an analog value (PWM-wave) to a digital pin."
+  (fn [type _ _] (type :interface)))
 
 (defmulti close
   "Close serial interface."
