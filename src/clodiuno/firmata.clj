@@ -1,6 +1,7 @@
 (ns clodiuno.firmata
   #^{:author "Nurullah Akkaya",
      :doc "Firmata Library for Clojure."}
+  (:use clodiuno.core :reload-all)
   (:import (java.io InputStream)
 	   (gnu.io SerialPort CommPortIdentifier 
 		   SerialPortEventListener SerialPortEvent 
@@ -53,9 +54,7 @@
 			  SerialPort/STOPBITS_1
 			  SerialPort/PARITY_NONE)))
 
-(defn close
-  "Close serial interface."
-  [conn]
+(defmethod close :firmata [conn]
   (dosync (alter conn merge {:thread false}))
   (.close (:port @conn)))
 
@@ -72,9 +71,7 @@
 ;; Firmata Related Calls
 ;;
 
-(defn enable-pin 
-  "Tell firmware to start sending pin readings."
-  [conn type pin]
+(defmethod enable-pin :firmata [conn type pin]
   (let [out (.getOutputStream (:port @conn))] 
     (if (= type :analog)
       (do
@@ -86,9 +83,7 @@
 	(.write out 1)))
     (.flush out)))
 
-(defn disable-pin 
-  "Tell firmware to stop sending pin readings."
-  [conn type pin]
+(defmethod disable-pin :firmata [conn type pin]
   (let [out (.getOutputStream (:port @conn))] 
     (if (= type :analog)
       (do
@@ -100,9 +95,7 @@
 	(.write out 0)))
     (.flush out)))
 
-(defn pin-mode 
-  "Configures the specified pin to behave either as an input or an output."
-  [conn pin mode]
+(defmethod pin-mode :firmata [conn pin mode]
   (doto (.getOutputStream (:port @conn))
     (.write (byte-array (vector (byte SET-PIN-MODE) (byte pin) (byte mode))))
     (.flush)))
@@ -122,9 +115,7 @@
 	second (BigInteger. (apply str (second bytes)) 2)]
     (vector (byte cmd) (byte first) (byte second))))
 
-(defn digital-write 
-  "Write a HIGH or a LOW value to a digital pin."
-  [conn pin value]
+(defmethod digital-write :firmata [conn pin value]
   (let [out   (.getOutputStream (:port @conn))
 	cmd   (bit-or (bit-and (bit-shift-right pin 3) 0x0F) DIGITAL-MESSAGE)
 	state (set-bit (:digital-out-state @conn) pin value)]
@@ -133,14 +124,10 @@
       (.write (byte-array (to-byte cmd state)))
       (.flush))))
 
-(defn analog-read 
-  "Reads the value from the specified analog pin."
-  [conn pin]
+(defmethod analog-read :firmata [conn pin]
   ((:analog-in-state @conn) pin))
 
-(defn analog-write 
-  "Write an analog value (PWM-wave) to a digital pin."
-  [conn pin val]
+(defmethod analog-write :firmata [conn pin val]
   (doto (.getOutputStream (:port @conn))
     (.write (bit-or 0xE0 (bit-and pin 0x0F)))
     (.write (bit-and val 0x7F))
@@ -188,6 +175,24 @@
 		   :digital-out-state [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
 		   :digital-in-state  [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
 		   :analog-in-state   [0 0 0 0 0 0]
-		   :thread true})]
+		   :thread true
+		   :interface :firmata})]
     (on-thread #(process-input conn (.getInputStream (:port @conn))))
     conn))
+
+(comment 
+  (def board (arduino "/dev/tty.usbserial-A600aeCj"))
+
+  (let [map (fn [x in-min in-max out-min out-max]
+		(int (+ (/ (* (- x in-min) (- out-max out-min)) 
+			   (- in-max in-min)) out-min)))]
+      (pin-mode board 3 PWM)
+      (pin-mode board 5 ANALOG)
+      (enable-pin board :analog 5)
+      
+      
+      (while true (analog-write board 3 
+				(map (analog-read board 5) 0 1023 0 255))))
+
+  (close board)
+  )
