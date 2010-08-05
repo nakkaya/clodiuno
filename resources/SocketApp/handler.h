@@ -66,7 +66,7 @@ char* getDigitalRead(char* msg){
   return buff;
 }
 
-int getAnalogRead(char* msg){
+char* getAnalogRead(char* msg){
   int pin = parsePin(msg);
 
   char buff [20];
