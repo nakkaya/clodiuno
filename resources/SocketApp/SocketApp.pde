@@ -1,3 +1,4 @@
+#include <Servo.h>
 #include <WiShield.h>
 #include "handler.h"
 

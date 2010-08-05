@@ -1,4 +1,8 @@
 #include <WProgram.h>
+#include <Servo.h>
+
+int servo_enabled[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+Servo servo[20];
 
 int parsePin(char* msg){
   char pin[] = {msg[2],msg[3]};
@@ -30,6 +34,10 @@ char* setPinMode(char* msg){
   }else if (mode == 'p'){
     pinMode(pin, OUTPUT);
     return "OK\n";
+  }else if (mode == 's'){
+    servo[pin].attach(pin);
+    servo_enabled[pin] = 1;
+    return "OK\n";
   }else
     return "Error\n";
 }
@@ -51,8 +59,11 @@ char* setDigitalWrite(char* msg){
 char* setAnalogWrite(char* msg){
   int pin = parsePin(msg);
   char val[] = {msg[4], msg[5], msg[6]};
-  
-  analogWrite(pin, atoi(val));
+
+  if (servo_enabled[pin] == 1)
+    servo[pin].write(atoi(val));
+  analogWrite(pin, atoi(val));  
+
   return "OK\n";
 }
 

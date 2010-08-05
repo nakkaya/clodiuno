@@ -33,7 +33,7 @@
 		   (= mode OUTPUT) "o"
 		   (= mode ANALOG) "a"
 		   (= mode PWM) "p"
-		   ;;(= mode SERVO) "s"
+		   (= mode SERVO) "s"
 		   :default (throw (Exception. "Invalid Mode.")))]
     (send-command board (str "pm" pin mode))))
 
@@ -73,6 +73,9 @@
 
 (comment 
   (def board (arduino "10.0.2.100" 1000))
+
+  (pin-mode board 5 SERVO)
+  (analog-write board 5 0)
 
   (do 
     (pin-mode board 3 OUTPUT)
