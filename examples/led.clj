@@ -1,5 +1,6 @@
 (ns led
-  (:use :reload-all clodiuno.core))
+  (:use :reload-all clodiuno.core)
+  (:use :reload-all clodiuno.firmata))
 
 (def board (arduino "/dev/tty.usbserial-A600aeCj"))
 

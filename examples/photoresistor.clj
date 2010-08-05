@@ -1,5 +1,6 @@
 (ns photoresistor
-  (:use :reload-all clodiuno.core))
+  (:use :reload-all clodiuno.core)
+  (:use :reload-all clodiuno.firmata))
 
 ;; refer
 ;; http://nakkaya.com/2009/10/29/connecting-a-photoresistor-to-an-arduino/
