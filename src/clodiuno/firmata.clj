@@ -179,20 +179,3 @@
 		   :interface :firmata})]
     (on-thread #(process-input conn (.getInputStream (:port @conn))))
     conn))
-
-(comment 
-  (def board (arduino "/dev/tty.usbserial-A600aeCj"))
-
-  (let [map (fn [x in-min in-max out-min out-max]
-		(int (+ (/ (* (- x in-min) (- out-max out-min)) 
-			   (- in-max in-min)) out-min)))]
-      (pin-mode board 3 PWM)
-      (pin-mode board 5 ANALOG)
-      (enable-pin board :analog 5)
-      
-      
-      (while true (analog-write board 3 
-				(map (analog-read board 5) 0 1023 0 255))))
-
-  (close board)
-  )

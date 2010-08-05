@@ -69,30 +69,3 @@
 	out (PrintWriter. (.getOutputStream socket))]
     (.readLine in)
     {:interface :wishield :in in :out out :socket socket}))
-
-
-(comment 
-  (def board (arduino "10.0.2.100" 1000))
-
-  (pin-mode board 5 SERVO)
-  (analog-write board 5 0)
-
-  (do 
-    (pin-mode board 3 OUTPUT)
-    (pin-mode board 6 INPUT)
-    (while true 
-	   (let [i (digital-read board 6)] 
-	     (println i)
-	     (digital-write board 3 i))))
-
-  (let [map (fn [x in-min in-max out-min out-max]
-		(+ (/ (* (- x in-min) (- out-max out-min)) 
-		      (- in-max in-min)) out-min))]
-      (pin-mode board 3 PWM)
-      (pin-mode board 5 ANALOG)
-      
-      (while true (analog-write board 3 
-				(map (analog-read board 5) 0 1023 0 255))))
-
-  (close board)
-  )
