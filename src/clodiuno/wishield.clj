@@ -6,6 +6,10 @@
 	   (java.net Socket)
 	   (java.io PrintWriter InputStreamReader BufferedReader)))
 
+;;Pins 10,11,12,13 are "mandatory" for SPI communications 
+;;as is pin 2 OR 8 depending on your jumper setting.
+;;Pin 9 (LED) and Pin 7 (Dataflash) can be freed by removing the jumper.
+
 (def pin-format (DecimalFormat. "00"))
 (def pwm-format (DecimalFormat. "000"))
 
