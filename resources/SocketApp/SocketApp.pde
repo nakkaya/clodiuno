@@ -1,10 +1,5 @@
-/*
- * Socket App
- *
- * A simple socket application example using the WiShield 1.0
- */
-
 #include <WiShield.h>
+#include "handler.h"
 
 #define WIRELESS_MODE_INFRA	1
 #define WIRELESS_MODE_ADHOC	2
@@ -55,4 +50,54 @@ void setup(){
 
 void loop(){
   WiFi.run();
+}
+
+extern "C" {
+
+#include "uip.h"
+#include <string.h>
+#include "uipopt.h"
+#include "psock.h"
+
+  static int handle_connection(struct socket_app_state *s);
+
+  void socket_app_init(void){
+    /* We start to listen for connections on TCP port 1000. */
+    uip_listen(HTONS(1000));
+  }
+
+  void socket_app_appcall(void){
+    struct socket_app_state *s = &(uip_conn->appstate);
+
+    if(uip_connected()) {
+      PSOCK_INIT(&s->p, 
+		 (unsigned char*)s->inputbuffer, 
+		 sizeof(s->inputbuffer));
+    }
+
+    handle_connection(s);
+  }
+
+#define PSOCK_SEND_STR(psock, str)					\
+  PT_WAIT_THREAD(&((psock)->pt), \
+		 psock_send(psock, (unsigned char*)str, strlen(str)))
+
+  static int handle_connection(struct socket_app_state *s){
+
+    PSOCK_BEGIN(&s->p);
+    PSOCK_SEND_STR(&s->p,"Connected.\n");
+
+    for(;;){
+      memset(s->inputbuffer, 0x00, sizeof(s->inputbuffer));
+      PSOCK_READTO(&s->p, '\n');
+
+      if(strcmp(s->inputbuffer,"bye\n") == 0)
+	break;
+
+      PSOCK_SEND_STR(&s->p, process(s->inputbuffer));
+    }
+
+    PSOCK_CLOSE(&s->p);
+    PSOCK_END(&s->p);
+  }
 }
