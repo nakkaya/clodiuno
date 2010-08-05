@@ -8,7 +8,7 @@
 (defn map-int [x in-min in-max out-min out-max]
   (+ (/ (* (- x in-min) (- out-max out-min)) (- in-max in-min)) out-min))
 
-(def board (arduino "10.0.2.100" 1000))
+(def board (arduino :wishield "10.0.2.100" 1000))
 
 (pin-mode board 3 PWM)
 (pin-mode board 5 ANALOG)

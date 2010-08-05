@@ -9,7 +9,7 @@
 (def photo-pin 0)
 (def led-pin 13)
 (def threshold 250)
-(def board (arduino "/dev/tty.usbserial-A600aeCj"))
+(def board (arduino :firmata "/dev/tty.usbserial-A600aeCj"))
 
 ;;allow arduino to boot
 (Thread/sleep 5000)

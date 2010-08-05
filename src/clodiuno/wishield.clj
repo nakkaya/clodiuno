@@ -63,7 +63,7 @@
     (.close out)
     (.close socket)))
 
-(defn arduino [ip port]
+(defmethod arduino :wishield [interface ip port]
   (let [socket (Socket. ip port)
 	in (BufferedReader. (InputStreamReader. (.getInputStream socket)))
 	out (PrintWriter. (.getOutputStream socket))]

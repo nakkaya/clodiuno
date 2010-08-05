@@ -1,5 +1,9 @@
 (ns clodiuno.core)
 
+(defmulti arduino
+  "Connect to board."
+  (fn [type & _] type))
+
 (defmulti enable-pin 
   "Tell firmware to start sending pin readings."
   (fn [type _ _] (type :interface)))

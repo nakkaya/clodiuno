@@ -6,7 +6,7 @@
 ;; LED connected ro pin 3
 ;; http://www.arduino.cc/en/Tutorial/Button
 
-(def board (arduino "10.0.2.100" 1000))
+(def board (arduino :wishield "10.0.2.100" 1000))
 
 (pin-mode board 3 OUTPUT)
 (pin-mode board 6 INPUT)

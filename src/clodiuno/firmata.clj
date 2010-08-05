@@ -167,9 +167,7 @@
 	 (alter conn merge 
 		{:version {:major (.read in) :minor (.read in)}})))))))
 
-(defn arduino 
-  "Open serial connection, installer the listener and return a ref."
-  [p]
+(defmethod arduino :firmata [p]
   (let [port (open (port-identifier p))
 	conn (ref {:port port
 		   :digital-out-state [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
