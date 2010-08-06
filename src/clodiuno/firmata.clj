@@ -167,8 +167,8 @@
 	 (alter conn merge 
 		{:version {:major (.read in) :minor (.read in)}})))))))
 
-(defmethod arduino :firmata [p]
-  (let [port (open (port-identifier p))
+(defmethod arduino :firmata [type port]
+  (let [port (open (port-identifier port))
 	conn (ref {:port port
 		   :digital-out-state [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
 		   :digital-in-state  [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
