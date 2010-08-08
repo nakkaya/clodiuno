@@ -2,7 +2,6 @@
   #^{:author "Nurullah Akkaya",
      :doc "WiShield Library for Clojure."}
   (:use clodiuno.core)
-  (:use clodiuno.constants)
   (:import (java.text DecimalFormat)
 	   (java.net Socket)
 	   (java.io PrintWriter InputStreamReader BufferedReader)))
