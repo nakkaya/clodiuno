@@ -2,6 +2,7 @@
   #^{:author "Nurullah Akkaya",
      :doc "Firmata Library for Clojure."}
   (:use clodiuno.core :reload-all)
+  (:use clodiuno.constants :reload-all)
   (:import (java.io InputStream)
 	   (gnu.io SerialPort CommPortIdentifier 
 		   SerialPortEventListener SerialPortEvent 
@@ -16,14 +17,6 @@
 (def SYSTEM-RESET     0xFF) ;;reset from MIDI
 (def START-SYSEX      0xF0) ;;start a MIDI SysEx message
 (def END-SYSEX        0xF7) ;;end a MIDI SysEx message
-
-(def INPUT 0) ;;pin to input mode
-(def OUTPUT 1) ;;pin to output mode
-(def ANALOG 2) ;;pin to analog mode
-(def PWM 3) ;; pin to PWM mode
-(def SERVO 4) ;; attach servo to pin (pins 2 - 13)
-(def HIGH 1) ;;high value (+5 volts) to a pin in a call to digital-write
-(def LOW 0) ;;low value (0 volts) to a pin in a call to digital-write
 (def baudrate 57600)
 
 (defn- on-thread [f]
