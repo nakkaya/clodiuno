@@ -1,8 +1,8 @@
 (ns clodiuno.wishield
   #^{:author "Nurullah Akkaya",
      :doc "WiShield Library for Clojure."}
-  (:use clodiuno.core :reload-all)
-  (:use clodiuno.constants :reload-all)
+  (:use clodiuno.core)
+  (:use clodiuno.constants)
   (:import (java.text DecimalFormat)
 	   (java.net Socket)
 	   (java.io PrintWriter InputStreamReader BufferedReader)))

@@ -1,8 +1,8 @@
 (ns clodiuno.firmata
   #^{:author "Nurullah Akkaya",
      :doc "Firmata Library for Clojure."}
-  (:use clodiuno.core :reload-all)
-  (:use clodiuno.constants :reload-all)
+  (:use clodiuno.core)
+  (:use clodiuno.constants)
   (:import (java.io InputStream)
 	   (gnu.io SerialPort CommPortIdentifier 
 		   SerialPortEventListener SerialPortEvent 
