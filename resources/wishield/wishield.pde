@@ -7,7 +7,7 @@
 
 // Wireless configuration parameters ----------------------------------------
 // IP address of WiShield
-unsigned char local_ip[] = {10,0,2,100};
+unsigned char local_ip[] = {10,0,1,200};
 // router or gateway IP address
 unsigned char gateway_ip[] = {10,0,2,1};
 // subnet mask for the local network
