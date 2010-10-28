@@ -176,4 +176,5 @@
 			:interface :firmata})]
 	     (on-thread
 	      #(process-input conn (.getInputStream (:port @conn))))
+	     (while (nil? (:version @conn)) (Thread/sleep 100))
 	     conn))

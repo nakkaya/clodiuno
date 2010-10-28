@@ -11,9 +11,6 @@
 (def threshold 250)
 (def board (arduino :firmata "/dev/tty.usbserial-A600aeCj"))
 
-;;allow arduino to boot
-(Thread/sleep 5000)
-
 (pin-mode board 13 OUTPUT)
 
 ;;start receiving data for photo-pin

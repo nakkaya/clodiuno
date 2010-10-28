@@ -4,9 +4,6 @@
 
 (def board (arduino :firmata "/dev/tty.usbserial-A6008nhh"))
 
-;;allow arduino to boot
-(Thread/sleep 5000)
-
 (pin-mode board 13 OUTPUT)
 
 (doseq [_ (range 5)] 
