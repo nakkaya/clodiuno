@@ -1,4 +1,5 @@
 (ns clodiuno.firmata
+  (:refer-clojure :exclude [byte])
   #^{:author "Nurullah Akkaya",
      :doc "Firmata Library for Clojure."}
   (:use clodiuno.core)
@@ -17,6 +18,9 @@
 (def START-SYSEX      0xF0) ;;start a MIDI SysEx message
 (def END-SYSEX        0xF7) ;;end a MIDI SysEx message
 (def baudrate 57600)
+
+(defn- byte [v]
+  (.byteValue (- v 256)))
 
 (defn- on-thread [f]
   (doto (Thread. #^Runnable f) 

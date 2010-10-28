@@ -2,7 +2,7 @@
   (:use :reload-all clodiuno.core)
   (:use :reload-all clodiuno.firmata))
 
-(def board (arduino :firmata "/dev/tty.usbserial-A600aeCj"))
+(def board (arduino :firmata "/dev/tty.usbserial-A6008nhh"))
 
 ;;allow arduino to boot
 (Thread/sleep 5000)
