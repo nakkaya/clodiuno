@@ -157,11 +157,14 @@
 	      (dosync (alter conn merge {:analog-in-state state})))
 	    ;;Digital Message
 	    (= msg DIGITAL-MESSAGE)
-	    (let [pin (bit-and data 0x0F)
+	    (let [port (bit-and data 0x0F)
 		  lsb (.read in)
 		  msb (.read in)
 		  val (bit-or (bit-shift-left msb 7) lsb)
-		  state (set-bit (:digital-in-state @conn) pin val)]
+		  state (reduce (fn[h v]
+                                  (set-bit h v (bit-and (bit-shift-right val (bit-and v 0x07)) 0x01)))
+                                (:digital-in-state @conn)
+                                (range (* port 8) (* (inc port) 8)))]
 	      (dosync (alter conn merge {:digital-in-state state})))))
 	 (= data REPORT-VERSION)
 	 (dosync
