@@ -75,7 +75,7 @@
 		 (.write out 1)))
 	     (if (= type :digital)
 	       (do
-		 (.write out (bit-or REPORT-DIGITAL pin))
+                 (.write out (bit-or REPORT-DIGITAL (if (< pin 8) 0 1)))
 		 (.write out 1)))
 	     (.flush out)))
 
@@ -87,8 +87,8 @@
 		 (.write out 0)))
 	     (if (= type :digital)
 	       (do
-		 (.write out (bit-or REPORT-DIGITAL pin))
-		 (.write out 0)))
+                 (.write out (bit-or REPORT-DIGITAL (if (< pin 8) 0 1)))
+                 (.write out 0)))
 	     (.flush out)))
 
 (defmethod pin-mode :firmata [conn pin mode]
@@ -121,6 +121,9 @@
 	     (doto out
 	       (.write (byte-array (to-byte cmd state)))
 	       (.flush))))
+
+(defmethod digital-read :firmata [conn pin]
+	   ((:digital-in-state @conn) pin))
 
 (defmethod analog-read :firmata [conn pin]
 	   ((:analog-in-state @conn) pin))
