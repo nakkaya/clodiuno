@@ -22,10 +22,6 @@
 (defn- byte [v]
   (.byteValue (- v 256)))
 
-(defn- on-thread [f]
-  (doto (Thread. #^Runnable f) 
-    (.start)))
-
 ;;
 ;; Serial Setup
 ;;
@@ -51,7 +47,6 @@
 			  SerialPort/PARITY_NONE)))
 
 (defmethod close :firmata [conn]
-	   (dosync (alter conn merge {:thread false}))
 	   (.close (:port @conn)))
 
 (defn- listener 
@@ -62,6 +57,12 @@
      [event]
      (if (= (.getEventType event) SerialPortEvent/DATA_AVAILABLE)
        (f)))))
+
+(defn bits [n]
+  (map #(bit-and (bit-shift-right n %) 1) (range 8)))
+
+(defn- assoc-in! [r ks v]
+  (dosync (alter r assoc-in ks v)))
 
 ;;
 ;; Firmata Related Calls
@@ -93,40 +94,19 @@
 
 (defmethod pin-mode :firmata [conn pin mode]
 	   (doto (.getOutputStream (:port @conn))
-	     (.write (byte-array
-		      (vector (byte SET-PIN-MODE) (byte pin) (byte mode))))
+	     (.write (byte-array (vector (byte SET-PIN-MODE) (byte pin) (byte mode))))
 	     (.flush)))
 
-(defn- set-bit 
-  "Given a vector of bits set the bit at the index to value"
-  [bit-vec index value]
-  (let [head (subvec bit-vec 0 index)
-	tail (subvec bit-vec (inc index))]
-    (apply conj head value tail)))
-
-(defn- to-byte 
-  "Produce digital write command, by combining cmd and bit vector."
-  [cmd bit-vec]
-  (let [bytes  (split-at 8 (reverse bit-vec))
-	first  (BigInteger. (apply str (first bytes)) 2)
-	second (BigInteger. (apply str (second bytes)) 2)]
-    (vector (byte cmd) (byte first) (byte second))))
-
 (defmethod digital-write :firmata [conn pin value]
-	   (let [out   (.getOutputStream (:port @conn))
-		 cmd   (bit-or (bit-and (bit-shift-right pin 3) 0x0F)
-			       DIGITAL-MESSAGE)
-		 state (set-bit (:digital-out-state @conn) pin value)]
-	     (dosync (alter conn merge {:digital-out-state state}))
-	     (doto out
-	       (.write (byte-array (to-byte cmd state)))
-	       (.flush))))
+           (throw (Exception. "Digital Write Temporarily Disabled.")))
 
 (defmethod digital-read :firmata [conn pin]
-	   ((:digital-in-state @conn) pin))
+           (let [port (int (/ pin 8))
+                 vals ((@conn :digital-in) port)]
+             (first (drop (mod pin 8) vals))))
 
 (defmethod analog-read :firmata [conn pin]
-	   ((:analog-in-state @conn) pin))
+           ((@conn :analog) pin))
 
 (defmethod analog-write :firmata [conn pin val]
 	   (doto (.getOutputStream (:port @conn))
@@ -135,52 +115,36 @@
 	     (.write (bit-shift-right val 7))
 	     (.flush)))
 
+(defn- read-multibyte [in]
+  (let [lsb (.read in)
+        msb (.read in)
+        val (bit-or (bit-shift-left msb 7) lsb)]
+    [lsb msb val]))
+
 (defn- process-input 
   "Parse input from firmata."
   [conn in]
-  (while
-      (:thread @conn)
-    (if-not (= 0 (.available in))
-      (let [data  (.read in)]
-	(cond 
-	 ;;Multibyte
-	 (< data 0xF0)
-	 (let [msg (bit-and data 0xF0)] 
-	   (cond 
-	    ;;Analog Message
-	    (= msg ANALOG-MESSAGE)
-	    (let [pin (bit-and data 0x0F)
-		  lsb (.read in)
-		  msb (.read in)
-		  val (bit-or (bit-shift-left msb 7) lsb)
-		  state (set-bit (:analog-in-state @conn) pin val)]
-	      (dosync (alter conn merge {:analog-in-state state})))
-	    ;;Digital Message
-	    (= msg DIGITAL-MESSAGE)
-	    (let [port (bit-and data 0x0F)
-		  lsb (.read in)
-		  msb (.read in)
-		  val (bit-or (bit-shift-left msb 7) lsb)
-		  state (reduce (fn[h v]
-                                  (set-bit h v (bit-and (bit-shift-right val (bit-and v 0x07)) 0x01)))
-                                (:digital-in-state @conn)
-                                (range (* port 8) (* (inc port) 8)))]
-	      (dosync (alter conn merge {:digital-in-state state})))))
-	 (= data REPORT-VERSION)
-	 (dosync
-	  (alter conn merge 
-		 {:version {:major (.read in) :minor (.read in)}})))))))
+  (while (> (.available in) 2)
+    (let [data (.read in)]
+      (cond
+       (= (bit-and data 0xF0) ANALOG-MESSAGE) (let [pin (bit-and data 0x0F)
+                                                    [_ _ val] (read-multibyte in)]
+                                                (assoc-in! conn [:analog pin] val))
+       
+       (= (bit-and data 0xF0) DIGITAL-MESSAGE) (let [port (bit-and data 0x0F)
+                                                     [lsb msb val] (read-multibyte in)]
+                                                 (assoc-in! conn [:digital-in port] (bits val)))
+
+       (= data REPORT-VERSION) (assoc-in! conn [:version] [(.read in) (.read in)])))))
 
 (defmethod arduino :firmata [type port]
 	   (let [port (open (port-identifier port))
-		 conn (ref
-		       {:port port
-			:digital-out-state [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
-			:digital-in-state  [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
-			:analog-in-state   [0 0 0 0 0 0]
-			:thread true
-			:interface :firmata})]
-	     (on-thread
-	      #(process-input conn (.getInputStream (:port @conn))))
-	     (while (nil? (:version @conn)) (Thread/sleep 100))
+		 conn (ref {:port port :interface :firmata})]
+             
+             (doto port
+               (.addEventListener (listener #(process-input conn (.getInputStream (:port @conn)))))
+               (.notifyOnDataAvailable true))
+             
+	     (while (nil? (:version @conn))
+               (Thread/sleep 100))
 	     conn))
