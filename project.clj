@@ -1,4 +1,4 @@
-(defproject clodiuno "0.0.2-SNAPSHOT"
+(defproject clodiuno "0.0.3-SNAPSHOT"
   :description "Clojure API for Arduino."
   :dependencies [[org.clojure/clojure "1.2.0"]]
   :native-dependencies 
