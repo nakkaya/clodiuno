@@ -58,47 +58,46 @@
      (if (= (.getEventType event) SerialPortEvent/DATA_AVAILABLE)
        (f)))))
 
-(defn bits [n]
+(defn- write-bytes [conn & bs]
+  (let [out (.getOutputStream (:port @conn))]
+    (doseq [b bs] 
+      (.write out b))
+    (.flush out)))
+
+(defn- bits [n]
   (map #(bit-and (bit-shift-right n %) 1) (range 8)))
+
+(defn- numb [bits]
+   (int (BigInteger. (apply str bits) 2)))
 
 (defn- assoc-in! [r ks v]
   (dosync (alter r assoc-in ks v)))
 
 ;;
-;; Firmata Related Calls
+;; Firmata Calls
 ;;
 
 (defmethod enable-pin :firmata [conn type pin]
-	   (let [out (.getOutputStream (:port @conn))] 
-	     (if (= type :analog)
-	       (do
-		 (.write out (bit-or REPORT-ANALOG pin))
-		 (.write out 1)))
-	     (if (= type :digital)
-	       (do
-                 (.write out (bit-or REPORT-DIGITAL (if (< pin 8) 0 1)))
-		 (.write out 1)))
-	     (.flush out)))
+           (cond (= type :analog) (write-bytes conn (bit-or REPORT-ANALOG pin) 1)
+                 (= type :digital) (write-bytes conn (bit-or REPORT-DIGITAL (int (/ pin 8))) 1)
+                 :default (throw (Exception. "Unknown pin type."))))
 
 (defmethod disable-pin :firmata [conn type pin]
-	   (let [out (.getOutputStream (:port @conn))] 
-	     (if (= type :analog)
-	       (do
-		 (.write out (bit-or REPORT-ANALOG pin))
-		 (.write out 0)))
-	     (if (= type :digital)
-	       (do
-                 (.write out (bit-or REPORT-DIGITAL (if (< pin 8) 0 1)))
-                 (.write out 0)))
-	     (.flush out)))
+	   (cond (= type :analog) (write-bytes conn (bit-or REPORT-ANALOG pin) 0)
+                 (= type :digital) (write-bytes conn (bit-or REPORT-DIGITAL (int (/ pin 8))) 0)
+                 :default (throw (Exception. "Unknown pin type."))))
 
 (defmethod pin-mode :firmata [conn pin mode]
-	   (doto (.getOutputStream (:port @conn))
-	     (.write (byte-array (vector (byte SET-PIN-MODE) (byte pin) (byte mode))))
-	     (.flush)))
+           (write-bytes conn SET-PIN-MODE pin mode))
 
 (defmethod digital-write :firmata [conn pin value]
-           (throw (Exception. "Digital Write Temporarily Disabled.")))
+           (let [port (int (/ pin 8))
+                 vals ((@conn :digital-out) port)
+                 beg (take (mod pin 8) vals)
+                 end (drop (inc (mod pin 8)) vals)
+                 state (concat beg [value] end)]
+             (assoc-in! conn [:digital-out port] state)
+             (write-bytes conn (bit-or DIGITAL-MESSAGE port) (numb (reverse state)) 0)))
 
 (defmethod digital-read :firmata [conn pin]
            (let [port (int (/ pin 8))
@@ -109,11 +108,7 @@
            ((@conn :analog) pin))
 
 (defmethod analog-write :firmata [conn pin val]
-	   (doto (.getOutputStream (:port @conn))
-	     (.write (bit-or 0xE0 (bit-and pin 0x0F)))
-	     (.write (bit-and val 0x7F))
-	     (.write (bit-shift-right val 7))
-	     (.flush)))
+           (write-bytes conn (bit-or ANALOG-MESSAGE (bit-and pin 0x0F)) (bit-and val 0x7F) (bit-shift-right val 7)))
 
 (defn- read-multibyte [in]
   (let [lsb (.read in)
@@ -147,4 +142,8 @@
              
 	     (while (nil? (:version @conn))
                (Thread/sleep 100))
+
+             (dotimes [i (count (keys (:digital-in @conn)))]
+               (assoc-in! conn [:digital-out i] (repeat 8 0)))
+             
 	     conn))
