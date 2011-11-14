@@ -7,17 +7,17 @@
 
 // Wireless configuration parameters ----------------------------------------
 // IP address of WiShield
-unsigned char local_ip[] = {10,0,2,200};
+unsigned char local_ip[] = {192,168,2,220};
 // router or gateway IP address
-unsigned char gateway_ip[] = {10,0,2,1};
+unsigned char gateway_ip[] = {192,168,2,1};
 // subnet mask for the local network
 unsigned char subnet_mask[] = {255,255,255,0};
 // max 32 bytes
-const prog_char ssid[] PROGMEM = {"adhoc"};
+const prog_char ssid[] PROGMEM = {"Home"};
 
 
 // 0 - open; 1 - WEP; 2 - WPA; 3 - WPA2
-unsigned char security_type = 0;
+unsigned char security_type = 3;
 
 // WPA/WPA2 passphrase
 // max 64 characters
