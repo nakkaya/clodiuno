@@ -4,8 +4,8 @@
      :doc "Firmata Library for Clojure."}
   (:use clodiuno.core)
   (:import (java.io InputStream)
-	   (gnu.io SerialPort CommPortIdentifier 
-		   SerialPortEventListener SerialPortEvent 
+	   (gnu.io SerialPort CommPortIdentifier
+		   SerialPortEventListener SerialPortEvent
 		   NoSuchPortException)))
 
 (def DIGITAL-MESSAGE  0x90) ;;send data for a digital port
@@ -26,7 +26,7 @@
 ;; Serial Setup
 ;;
 
-(defn- port-identifier 
+(defn- port-identifier
   "Given a port name return its identifier."
   [port-name]
   (try
@@ -37,7 +37,7 @@
 	  port (recur (.nextElement ports) (.getName port)))))
     (catch Exception e (throw (NoSuchPortException.)))))
 
-(defn- open 
+(defn- open
   "Open serial interface."
   [identifier]
   (doto (.open identifier "clojure" 1)
@@ -49,18 +49,18 @@
 (defmethod close :firmata [conn]
 	   (.close (:port @conn)))
 
-(defn- listener 
+(defn- listener
   "f will be called whenever there is data availible on the stream."
   [f]
-  (proxy [SerialPortEventListener] [] 
-    (serialEvent 
+  (proxy [SerialPortEventListener] []
+    (serialEvent
      [event]
      (if (= (.getEventType event) SerialPortEvent/DATA_AVAILABLE)
        (f)))))
 
 (defn- write-bytes [conn & bs]
   (let [out (.getOutputStream (:port @conn))]
-    (doseq [b bs] 
+    (doseq [b bs]
       (.write out b))
     (.flush out)))
 
@@ -116,7 +116,7 @@
         val (bit-or (bit-shift-left msb 7) lsb)]
     [lsb msb val]))
 
-(defn- process-input 
+(defn- process-input
   "Parse input from firmata."
   [conn in]
   (while (> (.available in) 2)
