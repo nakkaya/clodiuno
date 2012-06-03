@@ -4,8 +4,8 @@
      :doc "Firmata Library for Clojure."}
   (:use clodiuno.core)
   (:import (java.io InputStream)
-	   (gnu.io SerialPort CommPortIdentifier 
-		   SerialPortEventListener SerialPortEvent 
+	   (gnu.io SerialPort CommPortIdentifier
+		   SerialPortEventListener SerialPortEvent
 		   NoSuchPortException)))
 
 (def DIGITAL-MESSAGE  0x90) ;;send data for a digital port
@@ -26,7 +26,7 @@
 ;; Serial Setup
 ;;
 
-(defn- port-identifier 
+(defn- port-identifier
   "Given a port name return its identifier."
   [port-name]
   (try
@@ -37,7 +37,7 @@
 	  port (recur (.nextElement ports) (.getName port)))))
     (catch Exception e (throw (NoSuchPortException.)))))
 
-(defn- open 
+(defn- open
   "Open serial interface."
   [identifier]
   (doto (.open identifier "clojure" 1)
@@ -49,18 +49,18 @@
 (defmethod close :firmata [conn]
 	   (.close (:port @conn)))
 
-(defn- listener 
+(defn- listener
   "f will be called whenever there is data availible on the stream."
   [f]
-  (proxy [SerialPortEventListener] [] 
-    (serialEvent 
+  (proxy [SerialPortEventListener] []
+    (serialEvent
      [event]
      (if (= (.getEventType event) SerialPortEvent/DATA_AVAILABLE)
        (f)))))
 
 (defn- write-bytes [conn & bs]
   (let [out (.getOutputStream (:port @conn))]
-    (doseq [b bs] 
+    (doseq [b bs]
       (.write out b))
     (.flush out)))
 
@@ -116,7 +116,7 @@
         val (bit-or (bit-shift-left msb 7) lsb)]
     [lsb msb val]))
 
-(defn- process-input 
+(defn- process-input
   "Parse input from firmata."
   [conn in]
   (while (> (.available in) 2)
@@ -125,25 +125,29 @@
        (= (bit-and data 0xF0) ANALOG-MESSAGE) (let [pin (bit-and data 0x0F)
                                                     [_ _ val] (read-multibyte in)]
                                                 (assoc-in! conn [:analog pin] val))
-       
+
        (= (bit-and data 0xF0) DIGITAL-MESSAGE) (let [port (bit-and data 0x0F)
                                                      [lsb msb val] (read-multibyte in)]
                                                  (assoc-in! conn [:digital-in port] (bits val)))
 
        (= data REPORT-VERSION) (assoc-in! conn [:version] [(.read in) (.read in)])))))
 
+(defn- update-digital-out! "Workaround because else the digital-out is not populated."
+  [conn]
+  (dotimes [i (count (keys (:digital-in @conn)))]
+    (assoc-in! conn [:digital-out i] (repeat 8 0))))
+
 (defmethod arduino :firmata [type port]
 	   (let [port (open (port-identifier port))
 		 conn (ref {:port port :interface :firmata})]
-             
+
              (doto port
                (.addEventListener (listener #(process-input conn (.getInputStream (:port @conn)))))
                (.notifyOnDataAvailable true))
-             
+
 	     (while (nil? (:version @conn))
                (Thread/sleep 100))
 
-             (dotimes [i (count (keys (:digital-in @conn)))]
-               (assoc-in! conn [:digital-out i] (repeat 8 0)))
-             
+             (update-digital-out! conn)
+
 	     conn))
