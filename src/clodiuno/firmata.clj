@@ -125,25 +125,29 @@
        (= (bit-and data 0xF0) ANALOG-MESSAGE) (let [pin (bit-and data 0x0F)
                                                     [_ _ val] (read-multibyte in)]
                                                 (assoc-in! conn [:analog pin] val))
-       
+
        (= (bit-and data 0xF0) DIGITAL-MESSAGE) (let [port (bit-and data 0x0F)
                                                      [lsb msb val] (read-multibyte in)]
                                                  (assoc-in! conn [:digital-in port] (bits val)))
 
        (= data REPORT-VERSION) (assoc-in! conn [:version] [(.read in) (.read in)])))))
 
+(defn- update-digital-out! "Workaround because else the digital-out is not populated."
+  [conn]
+  (dotimes [i (count (keys (:digital-in @conn)))]
+    (assoc-in! conn [:digital-out i] (repeat 8 0))))
+
 (defmethod arduino :firmata [type port]
 	   (let [port (open (port-identifier port))
 		 conn (ref {:port port :interface :firmata})]
-             
+
              (doto port
                (.addEventListener (listener #(process-input conn (.getInputStream (:port @conn)))))
                (.notifyOnDataAvailable true))
-             
+
 	     (while (nil? (:version @conn))
                (Thread/sleep 100))
 
-             (dotimes [i (count (keys (:digital-in @conn)))]
-               (assoc-in! conn [:digital-out i] (repeat 8 0)))
-             
+             (update-digital-out! conn)
+
 	     conn))
