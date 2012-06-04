@@ -19,6 +19,8 @@
 (def END-SYSEX        0xF7) ;;end a MIDI SysEx message
 (def baudrate 57600)
 
+(def arduino-port-count 7)
+
 (defn- byte [v]
   (.byteValue (- v 256)))
 
@@ -132,11 +134,6 @@
 
        (= data REPORT-VERSION) (assoc-in! conn [:version] [(.read in) (.read in)])))))
 
-(defn- update-digital-out! "Workaround because else the digital-out is not populated."
-  [conn]
-  (dotimes [i (count (keys (:digital-in @conn)))]
-    (assoc-in! conn [:digital-out i] (repeat 8 0))))
-
 (defmethod arduino :firmata [type port]
 	   (let [port (open (port-identifier port))
 		 conn (ref {:port port :interface :firmata})]
@@ -148,6 +145,10 @@
 	     (while (nil? (:version @conn))
                (Thread/sleep 100))
 
-             (update-digital-out! conn)
+             (dotimes [i arduino-port-count]
+               (assoc-in! conn [:digital-out i] (repeat 8 0)))
+
+             (dotimes [i arduino-port-count]
+               (assoc-in! conn [:digital-in i] (repeat 8 0)))
 
 	     conn))
