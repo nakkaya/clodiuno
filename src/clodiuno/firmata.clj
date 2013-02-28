@@ -17,7 +17,6 @@
 (def SYSTEM-RESET     0xFF) ;;reset from MIDI
 (def START-SYSEX      0xF0) ;;start a MIDI SysEx message
 (def END-SYSEX        0xF7) ;;end a MIDI SysEx message
-(def baudrate 57600)
 
 (def arduino-port-count 7)
 
@@ -41,7 +40,7 @@
 
 (defn- open
   "Open serial interface."
-  [identifier]
+  [identifier baudrate]
   (doto (.open identifier "clojure" 1)
     (.setSerialPortParams baudrate
 			  SerialPort/DATABITS_8
@@ -134,8 +133,8 @@
 
        (= data REPORT-VERSION) (assoc-in! conn [:version] [(.read in) (.read in)])))))
 
-(defmethod arduino :firmata [type port]
-	   (let [port (open (port-identifier port))
+(defmethod arduino :firmata [type port & {:keys [baudrate] :or {baudrate 57600}}]
+	   (let [port (open (port-identifier port) baudrate)
 		 conn (ref {:port port :interface :firmata})]
 
              (doto port
