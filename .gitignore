@@ -3,3 +3,5 @@ native/
 classes/
 *.jar
 .lein-deps-sum
+target/
+pom.xml
