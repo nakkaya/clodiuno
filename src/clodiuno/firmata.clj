@@ -141,6 +141,8 @@
                (.addEventListener (listener #(process-input conn (.getInputStream (:port @conn)))))
                (.notifyOnDataAvailable true))
 
+             (write-bytes conn REPORT-VERSION)
+
 	     (while (nil? (:version @conn))
                (Thread/sleep 100))
 
