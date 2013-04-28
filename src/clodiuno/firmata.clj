@@ -48,16 +48,16 @@
 			  SerialPort/PARITY_NONE)))
 
 (defmethod close :firmata [conn]
-	   (.close (:port @conn)))
+  (.close (:port @conn)))
 
 (defn- listener
   "f will be called whenever there is data availible on the stream."
   [f]
   (proxy [SerialPortEventListener] []
     (serialEvent
-     [event]
-     (if (= (.getEventType event) SerialPortEvent/DATA_AVAILABLE)
-       (f)))))
+      [event]
+      (if (= (.getEventType event) SerialPortEvent/DATA_AVAILABLE)
+        (f)))))
 
 (defn- write-bytes [conn & bs]
   (let [out (.getOutputStream (:port @conn))]
@@ -69,7 +69,7 @@
   (map #(bit-and (bit-shift-right n %) 1) (range 8)))
 
 (defn- numb [bits]
-   (int (BigInteger. (apply str bits) 2)))
+  (int (BigInteger. (apply str bits) 2)))
 
 (defn- assoc-in! [r ks v]
   (dosync (alter r assoc-in ks v)))
@@ -79,37 +79,37 @@
 ;;
 
 (defmethod enable-pin :firmata [conn type pin]
-           (cond (= type :analog) (write-bytes conn (bit-or REPORT-ANALOG pin) 1)
-                 (= type :digital) (write-bytes conn (bit-or REPORT-DIGITAL (int (/ pin 8))) 1)
-                 :default (throw (Exception. "Unknown pin type."))))
+  (cond (= type :analog) (write-bytes conn (bit-or REPORT-ANALOG pin) 1)
+        (= type :digital) (write-bytes conn (bit-or REPORT-DIGITAL (int (/ pin 8))) 1)
+        :default (throw (Exception. "Unknown pin type."))))
 
 (defmethod disable-pin :firmata [conn type pin]
-	   (cond (= type :analog) (write-bytes conn (bit-or REPORT-ANALOG pin) 0)
-                 (= type :digital) (write-bytes conn (bit-or REPORT-DIGITAL (int (/ pin 8))) 0)
-                 :default (throw (Exception. "Unknown pin type."))))
+  (cond (= type :analog) (write-bytes conn (bit-or REPORT-ANALOG pin) 0)
+        (= type :digital) (write-bytes conn (bit-or REPORT-DIGITAL (int (/ pin 8))) 0)
+        :default (throw (Exception. "Unknown pin type."))))
 
 (defmethod pin-mode :firmata [conn pin mode]
-           (write-bytes conn SET-PIN-MODE pin mode))
+  (write-bytes conn SET-PIN-MODE pin mode))
 
 (defmethod digital-write :firmata [conn pin value]
-           (let [port (int (/ pin 8))
-                 vals ((@conn :digital-out) port)
-                 beg (take (mod pin 8) vals)
-                 end (drop (inc (mod pin 8)) vals)
-                 state (concat beg [value] end)]
-             (assoc-in! conn [:digital-out port] state)
-             (write-bytes conn (bit-or DIGITAL-MESSAGE port) (numb (reverse state)) 0)))
+  (let [port (int (/ pin 8))
+        vals ((@conn :digital-out) port)
+        beg (take (mod pin 8) vals)
+        end (drop (inc (mod pin 8)) vals)
+        state (concat beg [value] end)]
+    (assoc-in! conn [:digital-out port] state)
+    (write-bytes conn (bit-or DIGITAL-MESSAGE port) (numb (reverse state)) 0)))
 
 (defmethod digital-read :firmata [conn pin]
-           (let [port (int (/ pin 8))
-                 vals ((@conn :digital-in) port)]
-             (first (drop (mod pin 8) vals))))
+  (let [port (int (/ pin 8))
+        vals ((@conn :digital-in) port)]
+    (first (drop (mod pin 8) vals))))
 
 (defmethod analog-read :firmata [conn pin]
-           ((@conn :analog) pin))
+  ((@conn :analog) pin))
 
 (defmethod analog-write :firmata [conn pin val]
-           (write-bytes conn (bit-or ANALOG-MESSAGE (bit-and pin 0x0F)) (bit-and val 0x7F) (bit-shift-right val 7)))
+  (write-bytes conn (bit-or ANALOG-MESSAGE (bit-and pin 0x0F)) (bit-and val 0x7F) (bit-shift-right val 7)))
 
 (defn- read-multibyte [in]
   (let [lsb (.read in)
@@ -134,22 +134,22 @@
        (= data REPORT-VERSION) (assoc-in! conn [:version] [(.read in) (.read in)])))))
 
 (defmethod arduino :firmata [type port & {:keys [baudrate] :or {baudrate 57600}}]
-	   (let [port (open (port-identifier port) baudrate)
-		 conn (ref {:port port :interface :firmata})]
+  (let [port (open (port-identifier port) baudrate)
+        conn (ref {:port port :interface :firmata})]
 
-             (doto port
-               (.addEventListener (listener #(process-input conn (.getInputStream (:port @conn)))))
-               (.notifyOnDataAvailable true))
+    (doto port
+      (.addEventListener (listener #(process-input conn (.getInputStream (:port @conn)))))
+      (.notifyOnDataAvailable true))
 
-             (write-bytes conn REPORT-VERSION)
+    (write-bytes conn REPORT-VERSION)
 
-	     (while (nil? (:version @conn))
-               (Thread/sleep 100))
+    (while (nil? (:version @conn))
+      (Thread/sleep 100))
 
-             (dotimes [i arduino-port-count]
-               (assoc-in! conn [:digital-out i] (repeat 8 0)))
+    (dotimes [i arduino-port-count]
+      (assoc-in! conn [:digital-out i] (repeat 8 0)))
 
-             (dotimes [i arduino-port-count]
-               (assoc-in! conn [:digital-in i] (repeat 8 0)))
+    (dotimes [i arduino-port-count]
+      (assoc-in! conn [:digital-in i] (repeat 8 0)))
 
-	     conn))
+    conn))
