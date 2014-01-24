@@ -1,6 +1,13 @@
 Clojure API for Arduino.
 
-For installation instructions and examples check [project
+To install, merely add the following to your 'project.clj'.
+
+```clojure
+[clodiuno "0.0.1-SNAPSHOT"]
+
+``` 
+
+For examples, check out the [project
 homepage](http://nakkaya.com/clodiuno.html).
 
 # Usage
