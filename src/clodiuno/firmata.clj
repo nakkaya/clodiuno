@@ -240,9 +240,11 @@
                                    firmware-name (apply str (map char (read-to-sysex-end in)))]
                                (assoc-in! conn [:firmware] {:version [major-version minor-version] 
                                                             :name firmware-name}))
-     (= cmd STRING-DATA) (let [packet    (read-to-sysex-end in)
-                               msg       (apply str (map char packet))]
-                           (println "Message from Board:" msg))
+     (= cmd STRING-DATA) (let [packet       (read-to-sysex-end in)
+                               msg          (apply str (map char packet))
+                               msg-callback (get-in @conn [:callbacks :msg])]
+                           (when msg-callback
+                             (msg-callback msg)))
 
      (= cmd I2C-REPLY) (let [packet    (read-to-sysex-end in)
                              [slave-addr
@@ -277,7 +279,7 @@
        (= data START-SYSEX) (handle-sysex conn in)))))
 
 
-(defmethod arduino :firmata [type port & {:keys [baudrate] :or {baudrate 57600}}]
+(defmethod arduino :firmata [type port & {:keys [baudrate msg-callback] :or {baudrate 57600}}]
   (let [port (open (port-identifier port) baudrate)
         conn (ref {:port port :interface :firmata})]
 
@@ -297,5 +299,6 @@
       (assoc-in! conn [:digital-in i] (repeat 8 0)))
 
     (assoc-in! conn [:i2c] {:last-blocking-read nil})
+    (assoc-in! conn [:callbacks] {:msg msg-callback})
 
     conn))
