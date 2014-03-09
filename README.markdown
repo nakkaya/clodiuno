@@ -3,7 +3,7 @@ Clojure API for Arduino.
 To install, merely add the following to your 'project.clj'.
 
 ```clojure
-[clodiuno "0.0.1-SNAPSHOT"]
+[clodiuno "0.0.4-SNAPSHOT"]
 
 ``` 
 
